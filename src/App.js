@@ -7,22 +7,22 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      tunaId: '',
-      newHolderTunaId: '',
+      containerId: '',
+      newHolderContainerId: '',
       newHolderName: '',
-      newTunaId: '',
+      newContainerId: '',
       vesselName: '',
       longitude: '',
       latitude: '',
       holderName: '',
-      allTuna: []
+      allContainers: []
     };
 
     this.changeHolder = this.changeHolder.bind(this);
     this.createRecord = this.createRecord.bind(this);
     this.handleTextChange = this.handleTextChange.bind(this);
-    this.queryTuna = this.queryTuna.bind(this);
-    this.queryAllTuna = this.queryAllTuna.bind(this);
+    this.queryContainer = this.queryContainer.bind(this);
+    this.queryAllContainers = this.queryAllContainers.bind(this);
   }
 
   notifySuccess = message => toast.success(message);
@@ -30,15 +30,15 @@ class App extends Component {
 
   createRecord(event) {
     event.preventDefault();
-    const { newTunaId, vesselName, longitude, latitude, holderName } = this.state;
-    if (newTunaId && vesselName && longitude && latitude && holderName) {
+    const { newContainerId, vesselName, longitude, latitude, holderName } = this.state;
+    if (newContainerId && vesselName && longitude && latitude && holderName) {
       fetch('create', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          key: newTunaId,
+          key: newContainerId,
           holder: holderName,
           vessel: vesselName,
           location: `${longitude}, ${latitude}`,
@@ -59,15 +59,15 @@ class App extends Component {
 
   changeHolder(event) {
     event.preventDefault();
-    const { newHolderTunaId, newHolderName } = this.state;
-    if (newHolderTunaId && newHolderName) {
+    const { newHolderContainerId, newHolderName } = this.state;
+    if (newHolderContainerId && newHolderName) {
       fetch('change', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id: newHolderTunaId,
+          id: newHolderContainerId,
           holder: newHolderName
         }),
       })
@@ -87,16 +87,16 @@ class App extends Component {
     this.setState({ [event.target.id]: event.target.value });
   };
 
-  queryTuna(event) {
+  queryContainer(event) {
     event.preventDefault();
-    const { tunaId } = this.state;
-    if (tunaId) {
-      fetch(`get/${encodeURIComponent(tunaId)}`)
+    const { containerId } = this.state;
+    if (containerId) {
+      fetch(`get/${encodeURIComponent(containerId)}`)
         .then(response => response.json())
         .then(data => {
           if (data.success && data.result) {
             this.setState({ 
-              allTuna: [{ Key: tunaId, Record: JSON.parse(data.result) }]
+              allContainers: [{ Key: containerId, Record: JSON.parse(data.result) }]
             });
           } else {
             console.error(data.error);
@@ -105,13 +105,13 @@ class App extends Component {
     }
   }
 
-  queryAllTuna(event) {
+  queryAllContainers(event) {
     event.preventDefault();
     fetch('get_all')
       .then(response => response.json())
       .then(data => {
         if (data.success && data.result) {
-          this.setState({ allTuna: data.result });
+          this.setState({ allContainers: data.result });
         } else {
           console.error(data.error);
         }
@@ -122,56 +122,56 @@ class App extends Component {
     return (
       <div className="App">
         <header>
-          <div id="left_header">Hyperledger Fabric Tuna Application</div>
+          <div id="left_header">Hyperledger Fabric Demo Application</div>
           <i id="right_header">Example Blockchain Application for Hyperledger Fabric</i>
         </header>
-        <div className="queryTuna">
-          <form onSubmit={this.queryTuna}>
-            <label>Query a Specific Tuna Catch</label><br />
-            Enter a catch number: <br />
+        <div className="queryContainer">
+          <form onSubmit={this.queryContainer}>
+            <label>Query a Specific Container</label><br />
+            Enter a container ID: <br />
             <input
-              id="tunaId"
+              id="containerId"
               type="number"
               placeholder="Ex: 3"
-              value={this.state.tunaId}
+              value={this.state.containerId}
               onChange={this.handleTextChange}
             />
             <br />
-            <button type="submit" className="btn btn-primary">Query Tuna Record</button>
+            <button type="submit" className="btn btn-primary">Query Container Record</button>
           </form>
         </div>
         <br />
         <br />
 
-        <div className="queryAllTuna">
+        <div className="queryAllContainers">
           <div className="form-group">
-            <label>Query All Tuna Catches</label><br />
-            <button type="button" className="btn btn-primary" onClick={this.queryAllTuna}>Query All Tuna</button>
+            <label>Query All Containers</label><br />
+            <button type="button" className="btn btn-primary" onClick={this.queryAllContainers}>Query All Containers</button>
           </div>
  
           {
-            this.state.allTuna.length ? (
-              <table id="all_tuna" className="table" align="center">
+            this.state.allContainers.length ? (
+              <table id="all_containers" className="table" align="center">
                 <thead>
                   <tr>
                     <th>ID</th>
                     <th>Timestamp</th>
                     <th>Holder</th>
-                    <th>Catch Location (Longitude, Latitude)</th>
+                    <th>Container Location (Longitude, Latitude)</th>
                     <th>Vessel</th>
                   </tr>
                 </thead>
                 <tbody>
                   {
-                    this.state.allTuna
+                    this.state.allContainers
                     .sort((a, b) => parseFloat(a.Key) - parseFloat(b.Key))
-                    .map(tuna => (
-                      <tr key={tuna.Key}>
-                        <td>{tuna.Key}</td>
-                        <td>{tuna.Record.timestamp}</td>
-                        <td>{tuna.Record.holder}</td>
-                        <td>{tuna.Record.location}</td>
-                        <td>{tuna.Record.vessel}</td>
+                    .map(container => (
+                      <tr key={container.Key}>
+                        <td>{container.Key}</td>
+                        <td>{container.Record.timestamp}</td>
+                        <td>{container.Record.holder}</td>
+                        <td>{container.Record.location}</td>
+                        <td>{container.Record.vessel}</td>
                       </tr>
                     ))
                   }
@@ -186,17 +186,16 @@ class App extends Component {
 
         <div className="createRecord">
           <form onSubmit={this.createRecord}>
-            <label>Create Tuna Record</label>
-            {/* <h5 style="color:green;margin-bottom:2%" id="success_create">Success! Tx ID: {create_tuna}</h5> */}
+            <label>Create Container Record</label>
             <br />
-            Enter catch id:
+            Enter container id:
             <input
               className="form-control" 
-              id="newTunaId"
-              name="newTunaId" 
+              id="newContainerId"
+              name="newContainerId" 
               type="text" 
               placeholder="Ex: 11" 
-              value={this.state.newTunaId}
+              value={this.state.newContainerId}
               onChange={this.handleTextChange}
             />
             Enter name of vessel: 
@@ -246,19 +245,17 @@ class App extends Component {
         <br />
         <br />
 
-        <div className="changeTunaHolder">
+        <div className="changeContainerHolder">
           <form onSubmit={this.changeHolder}>
-            <label>Change Tuna Holder</label><br />
-            {/* <h5 style="color:green;margin-bottom:2%" id="success_holder">Success! Tx ID: {change_holder}</h5>
-            <h5 style="color:red;margin-bottom:2%" id="error_holder">Error: Please enter a valid Tuna Id</h5> */}
-            Enter a catch id between 1 and 10:
+            <label>Change Container Holder</label><br />
+             Enter a container ID:
             <input
               className="form-control"
-              id="newHolderTunaId"
-              name="newHolderTunaId" 
+              id="newHolderContainerId"
+              name="newHolderContainerId" 
               placeholder="Ex: 1" 
               type="number"
-              value={this.state.newHolderTunaId}
+              value={this.state.newHolderContainerId}
               onChange={this.handleTextChange}
             />
             Enter name of new holder:

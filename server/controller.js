@@ -12,8 +12,8 @@ const util          = require('util');
 const os            = require('os');
 
 module.exports = {
-	get_all_tuna: (req, res) => {
-		console.log("getting all tuna from database: ");
+	get_all_containers: (req, res) => {
+		console.log("getting all containers from database: ");
 
 		const fabric_client = new Fabric_Client();
 
@@ -39,19 +39,19 @@ module.exports = {
 		    fabric_client.setCryptoSuite(crypto_suite);
 
 		    // get the enrolled user from persistence, this user will sign all requests
-		    return fabric_client.getUserContext('user2', true);
+		    return fabric_client.getUserContext('adminUser', true);
 		}).then(user_from_store => {
 		    if (user_from_store && user_from_store.isEnrolled()) {
-		        console.log('Successfully loaded user2 from persistence');
+		        console.log('Successfully loaded adminUser from persistence');
 		    } else {
-		        throw new Error('Failed to get user2.... run registerUser.js');
+		        throw new Error('Failed to get adminUser.... run registerUser.js');
 		    }
 
-		    // queryAllTuna - requires no arguments , ex: args: [''],
+		    // queryAllContainers - requires no arguments , ex: args: [''],
 		    const request = {
-		        chaincodeId: 'tuna-app',
+		        chaincodeId: 'hyperledger-fabric-demo-app',
 		        txId: tx_id,
-		        fcn: 'queryAllTuna',
+		        fcn: 'queryAllContainers',
 		        args: ['']
 		    };
 
@@ -63,7 +63,7 @@ module.exports = {
 		    if (query_responses && query_responses.length === 1) {
 		        if (query_responses[0] instanceof Error) {
 					console.error("error from query = ", query_responses[0]);
-					res.send({ success: false, error: `Could not locate tuna. ${query_responses[0]}` });
+					res.send({ success: false, error: `Could not locate containers. ${query_responses[0]}` });
 		        } else {
 		            console.log("Response is", query_responses[0].toString());
 		            res.send({ success: true, result: JSON.parse(query_responses[0].toString()) });
@@ -74,10 +74,10 @@ module.exports = {
 		    }
 		}).catch(err => {
 			console.error('Failed to query successfully :: ' + err);
-			res.send({ success: false, error: `Failed to query all tuna. ${err}` });
+			res.send({ success: false, error: `Failed to query all containers. ${err}` });
 		});
 	},
-	get_tuna: (req, res) => {
+	get_container: (req, res) => {
 		const fabric_client = new Fabric_Client();
 		const key = req.params.id;
 		
@@ -103,19 +103,19 @@ module.exports = {
 		    fabric_client.setCryptoSuite(crypto_suite);
 
 		    // get the enrolled user from persistence, this user will sign all requests
-		    return fabric_client.getUserContext('user2', true);
+		    return fabric_client.getUserContext('adminUser', true);
 		}).then(user_from_store => {
 		    if (user_from_store && user_from_store.isEnrolled()) {
-		        console.log('Successfully loaded user2 from persistence');
+		        console.log('Successfully loaded adminUser from persistence');
 		    } else {
-		        throw new Error('Failed to get user2.... run registerUser.js');
+		        throw new Error('Failed to get adminUser.... run registerUser.js');
 		    }
 
-		    // queryTuna - requires 1 argument, ex: args: ['4'],
+		    // queryContainer - requires 1 argument, ex: args: ['4'],
 		    const request = {
-		        chaincodeId: 'tuna-app',
+		        chaincodeId: 'hyperledger-fabric-demo-app',
 		        txId: tx_id,
-		        fcn: 'queryTuna',
+		        fcn: 'queryContainer',
 		        args: [key]
 		    };
 
@@ -127,7 +127,7 @@ module.exports = {
 		    if (query_responses && query_responses.length === 1) {
 		        if (query_responses[0] instanceof Error) {
 		            console.error("error from query = ", query_responses[0]);
-		            res.send({ success: false, error: `Could not locate tuna. ${query_responses[0]}` })
+		            res.send({ success: false, error: `Could not locate container. ${query_responses[0]}` })
 
 		        } else {
 		            console.log("Response is", query_responses[0].toString());
@@ -135,15 +135,15 @@ module.exports = {
 		        }
 		    } else {
 		        console.log("No payloads were returned from query");
-		        res.send({ success: false, error: 'Could not locate tuna. No payloads were returned from query' });
+		        res.send({ success: false, error: 'Could not locate container. No payloads were returned from query' });
 		    }
 		}).catch(err => {
 		    console.error('Failed to query successfully :: ' + err);
-		    res.send({ success: false, error: `Could not locate tuna. ${err}` });
+		    res.send({ success: false, error: `Could not locate container. ${err}` });
 		});
 	},
 	create_record: (req, res) => {
-		console.log("submit recording of a tuna catch: ");
+		console.log("submit recording of a container: ");
 
 		const { key, timestamp, location, vessel, holder } = req.body;
 		const fabric_client = new Fabric_Client();
@@ -172,24 +172,24 @@ module.exports = {
 		    fabric_client.setCryptoSuite(crypto_suite);
 
 		    // get the enrolled user from persistence, this user will sign all requests
-		    return fabric_client.getUserContext('user2', true);
+		    return fabric_client.getUserContext('adminUser', true);
 		}).then(user_from_store => {
 		    if (user_from_store && user_from_store.isEnrolled()) {
-		        console.log('Successfully loaded user2 from persistence');
+		        console.log('Successfully loaded adminUser from persistence');
 		    } else {
-		        throw new Error('Failed to get user2.... run registerUser.js');
+		        throw new Error('Failed to get adminUser.... run registerUser.js');
 		    }
 
 		    // get a transaction id object based on the current user assigned to fabric client
 		    tx_id = fabric_client.newTransactionID();
 		    console.log("Assigning transaction_id: ", tx_id._transaction_id);
 
-		    // recordTuna - requires 5 args, ID, vessel, location, timestamp,holder - ex: args: ['10', 'Hound', '-12.021, 28.012', '1504054225', 'Hansel'],
+		    // recordContainer - requires 5 args, ID, vessel, location, timestamp, holder - ex: args: ['10', 'Hound', '-12.021, 28.012', '1504054225', 'Hansel'],
 		    // send proposal to endorser
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
-		        chaincodeId: 'tuna-app',
-		        fcn: 'recordTuna',
+		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        fcn: 'recordContainer',
 		        args: [key, vessel, location, timestamp, holder],
 		        chainId: 'mychannel',
 		        txId: tx_id
@@ -292,13 +292,13 @@ module.exports = {
 			}
 		}).catch(err => {
 			console.error('Failed to invoke successfully :: ' + err);
-			res.send({ success: false, error: `Failed to invoke add_tuna. ${err}` });
+			res.send({ success: false, error: `Failed to invoke create_record. ${err}` });
 		});
 	},
 	change_holder: (req, res) => {
-		console.log("changing holder of tuna catch:", req.params);
+		console.log("changing holder of a container:", req.params);
 
-		const tunaId = req.body.id;
+		const containerId = req.body.id;
 		const holder = req.body.holder;
 		const fabric_client = new Fabric_Client();
 
@@ -327,25 +327,25 @@ module.exports = {
 		    fabric_client.setCryptoSuite(crypto_suite);
 
 		    // get the enrolled user from persistence, this user will sign all requests
-		    return fabric_client.getUserContext('user2', true);
+		    return fabric_client.getUserContext('adminUser', true);
 		}).then(user_from_store => {
 		    if (user_from_store && user_from_store.isEnrolled()) {
-		        console.log('Successfully loaded user2 from persistence');
+		        console.log('Successfully loaded adminUser from persistence');
 		    } else {
-		        throw new Error('Failed to get user2.... run registerUser.js');
+		        throw new Error('Failed to get adminUser.... run registerUser.js');
 		    }
 
 		    // get a transaction id object based on the current user assigned to fabric client
 		    tx_id = fabric_client.newTransactionID();
 		    console.log("Assigning transaction_id: ", tx_id._transaction_id);
 
-		    // changeTunaHolder - requires 2 args , ex: args: ['1', 'Barry'],
+		    // changeContainerHolder - requires 2 args , ex: args: ['1', 'Barry'],
 		    // send proposal to endorser
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
-		        chaincodeId: 'tuna-app',
-		        fcn: 'changeTunaHolder',
-		        args: [tunaId, holder],
+		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        fcn: 'changeContainerHolder',
+		        args: [containerId, holder],
 		        chainId: 'mychannel',
 		        txId: tx_id
 		    };

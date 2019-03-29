@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { create_record, change_holder, get_tuna, get_all_tuna, } = require('./controller.js');
+const { create_record, change_holder, get_container, get_all_containers, } = require('./controller.js');
 
 // Save our port
 const port = process.env.PORT || 3001;
@@ -10,10 +10,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.get('/get/:id', (req, res) => {
-    get_tuna(req, res);
+    get_container(req, res);
 });
 app.get('/get_all', (req, res) => {
-    get_all_tuna(req, res);
+    get_all_containers(req, res);
 });
 app.post('/change', (req, res) => {
     change_holder(req, res);

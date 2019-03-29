@@ -28,10 +28,10 @@ import (
 type SmartContract struct {
 }
 
-/* Define Tuna structure, with 4 properties.  
+/* Define Container structure, with 4 properties.  
 Structure tags are used by encoding/json library
 */
-type Tuna struct {
+type Container struct {
 	Vessel string `json:"vessel"`
 	Timestamp string `json:"timestamp"`
 	Location  string `json:"location"`
@@ -40,7 +40,7 @@ type Tuna struct {
 
 /*
  * The Init method *
- called when the Smart Contract "tuna-chaincode" is instantiated by the network
+ called when the Smart Contract "container-chaincode" is instantiated by the network
  * Best practice is to have any Ledger initialization in separate function 
  -- see initLedger()
  */
@@ -50,7 +50,7 @@ func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
 
 /*
  * The Invoke method *
- called when an application requests to run the Smart Contract "tuna-chaincode"
+ called when an application requests to run the Smart Contract "container-chaincode"
  The app also specifies the specific smart contract function to call with args
  */
 func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response {
@@ -58,63 +58,63 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 	// Retrieve the requested Smart Contract function and arguments
 	function, args := APIstub.GetFunctionAndParameters()
 	// Route to the appropriate handler function to interact with the ledger
-	if function == "queryTuna" {
-		return s.queryTuna(APIstub, args)
+	if function == "queryContainer" {
+		return s.queryContainer(APIstub, args)
 	} else if function == "initLedger" {
 		return s.initLedger(APIstub)
-	} else if function == "recordTuna" {
-		return s.recordTuna(APIstub, args)
-	} else if function == "queryAllTuna" {
-		return s.queryAllTuna(APIstub)
-	} else if function == "changeTunaHolder" {
-		return s.changeTunaHolder(APIstub, args)
+	} else if function == "recordContainer" {
+		return s.recordContainer(APIstub, args)
+	} else if function == "queryAllContainers" {
+		return s.queryAllContainers(APIstub)
+	} else if function == "changeContainerHolder" {
+		return s.changeContainerHolder(APIstub, args)
 	}
 
 	return shim.Error("Invalid Smart Contract function name.")
 }
 
 /*
- * The queryTuna method *
-Used to view the records of one particular tuna
-It takes one argument -- the key for the tuna in question
+ * The queryContainer method *
+Used to view the records of one particular container
+It takes one argument -- the key for the container in question
  */
-func (s *SmartContract) queryTuna(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+func (s *SmartContract) queryContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
 	if len(args) != 1 {
 		return shim.Error("Incorrect number of arguments. Expecting 1")
 	}
 
-	tunaAsBytes, _ := APIstub.GetState(args[0])
-	if tunaAsBytes == nil {
-		return shim.Error("Could not locate tuna")
+	containerAsBytes, _ := APIstub.GetState(args[0])
+	if containerAsBytes == nil {
+		return shim.Error("Could not locate container")
 	}
-	return shim.Success(tunaAsBytes)
+	return shim.Success(containerAsBytes)
 }
 
 /*
  * The initLedger method *
-Will add test data (10 tuna catches)to our network
+Will add test data (10 containers) to our network
  */
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
-	tuna := []Tuna{
-		Tuna{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: "1504054225", Holder: "Miriam"},
-		Tuna{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: "1504057825", Holder: "Dave"},
-		Tuna{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: "1493517025", Holder: "Igor"},
-		Tuna{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: "1496105425", Holder: "Amalea"},
-		Tuna{Vessel: "S439", Location: "-107.6043, 19.5003", Timestamp: "1493512301", Holder: "Rafa"},
-		Tuna{Vessel: "J205", Location: "-155.2304, -15.8723", Timestamp: "1494117101", Holder: "Shen"},
-		Tuna{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: "1496104301", Holder: "Leila"},
-		Tuna{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: "1485066691", Holder: "Yuan"},
-		Tuna{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: "1485153091", Holder: "Carlo"},
-		Tuna{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: "1487745091", Holder: "Fatima"},
+	containers := []Container{
+		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: "1504054225", Holder: "Miriam"},
+		Container{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: "1504057825", Holder: "Dave"},
+		Container{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: "1493517025", Holder: "Igor"},
+		Container{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: "1496105425", Holder: "Amalea"},
+		Container{Vessel: "S439", Location: "-107.6043, 19.5003", Timestamp: "1493512301", Holder: "Rafa"},
+		Container{Vessel: "J205", Location: "-155.2304, -15.8723", Timestamp: "1494117101", Holder: "Shen"},
+		Container{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: "1496104301", Holder: "Leila"},
+		Container{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: "1485066691", Holder: "Yuan"},
+		Container{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: "1485153091", Holder: "Carlo"},
+		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: "1487745091", Holder: "Fatima"},
 	}
 
 	i := 0
-	for i < len(tuna) {
+	for i < len(containers) {
 		fmt.Println("i is ", i)
-		tunaAsBytes, _ := json.Marshal(tuna[i])
-		APIstub.PutState(strconv.Itoa(i+1), tunaAsBytes)
-		fmt.Println("Added", tuna[i])
+		containerAsBytes, _ := json.Marshal(containers[i])
+		APIstub.PutState(strconv.Itoa(i+1), containerAsBytes)
+		fmt.Println("Added", containers[i])
 		i = i + 1
 	}
 
@@ -122,33 +122,33 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 }
 
 /*
- * The recordTuna method *
-Fisherman like Sarah would use to record each of her tuna catches. 
+ * The recordContainer method *
+Container owners like Sarah would use to record each of her containers. 
 This method takes in five arguments (attributes to be saved in the ledger). 
  */
-func (s *SmartContract) recordTuna(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
 	if len(args) != 5 {
 		return shim.Error("Incorrect number of arguments. Expecting 5")
 	}
 
-	var tuna = Tuna{ Vessel: args[1], Location: args[2], Timestamp: args[3], Holder: args[4] }
+	var container = Container{ Vessel: args[1], Location: args[2], Timestamp: args[3], Holder: args[4] }
 
-	tunaAsBytes, _ := json.Marshal(tuna)
-	err := APIstub.PutState(args[0], tunaAsBytes)
+	containerAsBytes, _ := json.Marshal(container)
+	err := APIstub.PutState(args[0], containerAsBytes)
 	if err != nil {
-		return shim.Error(fmt.Sprintf("Failed to record tuna catch: %s", args[0]))
+		return shim.Error(fmt.Sprintf("Failed to record container: %s", args[0]))
 	}
 
 	return shim.Success(nil)
 }
 
 /*
- * The queryAllTuna method *
-allows for assessing all the records added to the ledger(all tuna catches)
+ * The queryAllContainers method *
+allows for assessing all the records added to the ledger(all containers)
 This method does not take any arguments. Returns JSON string containing results. 
  */
-func (s *SmartContract) queryAllTuna(APIstub shim.ChaincodeStubInterface) sc.Response {
+func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) sc.Response {
 
 	startKey := "0"
 	endKey := "999"
@@ -186,37 +186,37 @@ func (s *SmartContract) queryAllTuna(APIstub shim.ChaincodeStubInterface) sc.Res
 	}
 	buffer.WriteString("]")
 
-	fmt.Printf("- queryAllTuna:\n%s\n", buffer.String())
+	fmt.Printf("- queryAllContainers:\n%s\n", buffer.String())
 
 	return shim.Success(buffer.Bytes())
 }
 
 /*
- * The changeTunaHolder method *
+ * The changeContainerHolder method *
 The data in the world state can be updated with who has possession. 
-This function takes in 2 arguments, tuna id and new holder name. 
+This function takes in 2 arguments, container ID and new holder name. 
  */
-func (s *SmartContract) changeTunaHolder(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
 	if len(args) != 2 {
 		return shim.Error("Incorrect number of arguments. Expecting 2")
 	}
 
-	tunaAsBytes, _ := APIstub.GetState(args[0])
-	if tunaAsBytes == nil {
-		return shim.Error("Could not locate tuna")
+	containerAsBytes, _ := APIstub.GetState(args[0])
+	if containerAsBytes == nil {
+		return shim.Error("Could not locate container")
 	}
-	tuna := Tuna{}
+	container := Container{}
 
-	json.Unmarshal(tunaAsBytes, &tuna)
-	// Normally check that the specified argument is a valid holder of tuna
+	json.Unmarshal(containerAsBytes, &container)
+	// Normally check that the specified argument is a valid holder of a container
 	// we are skipping this check for this example
-	tuna.Holder = args[1]
+	container.Holder = args[1]
 
-	tunaAsBytes, _ = json.Marshal(tuna)
-	err := APIstub.PutState(args[0], tunaAsBytes)
+	containerAsBytes, _ = json.Marshal(container)
+	err := APIstub.PutState(args[0], containerAsBytes)
 	if err != nil {
-		return shim.Error(fmt.Sprintf("Failed to change tuna holder: %s", args[0]))
+		return shim.Error(fmt.Sprintf("Failed to change container holder: %s", args[0]))
 	}
 
 	return shim.Success(nil)
