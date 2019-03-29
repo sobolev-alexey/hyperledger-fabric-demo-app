@@ -15,10 +15,6 @@ Remove any pre-existing containers, as it may conflict with commands in this pro
 
 ```
 docker rm -f $(docker ps -aq)
-
-docker rmi -f $(docker images -a -q)
-
-rm -rf ~/Library/Containers/com.docker.docker/Data/*
 ```
 
 Remove key store contents
@@ -29,16 +25,16 @@ cd ~ && rm -rf .hfc-key-store/
 
 ## Starting the Application
 
-1. Start the Hyperledger Fabric network
-
-```
-./startFabric.sh
-```
-
-2. Install the required libraries from the package.json file
+1. Install the required libraries from the package.json file
 
 ```
 yarn
+```
+
+2. Start the Hyperledger Fabric network
+
+```
+./startFabric.sh
 ```
 
 3. Register the Admin and User components of our network
