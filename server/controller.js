@@ -49,7 +49,7 @@ module.exports = {
 
 		    // queryAllContainers - requires no arguments , ex: args: [''],
 		    const request = {
-		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        chaincodeId: 'fabric-demo-app',
 		        txId: tx_id,
 		        fcn: 'queryAllContainers',
 		        args: ['']
@@ -113,7 +113,7 @@ module.exports = {
 
 		    // queryContainer - requires 1 argument, ex: args: ['4'],
 		    const request = {
-		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        chaincodeId: 'fabric-demo-app',
 		        txId: tx_id,
 		        fcn: 'queryContainer',
 		        args: [key]
@@ -188,7 +188,7 @@ module.exports = {
 		    // send proposal to endorser
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
-		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        chaincodeId: 'fabric-demo-app',
 		        fcn: 'recordContainer',
 		        args: [key, vessel, location, timestamp, holder],
 		        chainId: 'mychannel',
@@ -343,7 +343,7 @@ module.exports = {
 		    // send proposal to endorser
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
-		        chaincodeId: 'hyperledger-fabric-demo-app',
+		        chaincodeId: 'fabric-demo-app',
 		        fcn: 'changeContainerHolder',
 		        args: [containerId, holder],
 		        chainId: 'mychannel',
