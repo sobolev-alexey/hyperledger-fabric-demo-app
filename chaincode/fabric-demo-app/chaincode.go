@@ -22,6 +22,7 @@ import (
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
+	"github.com/fabric-demo-app/iota"
 )
 
 // Define the Smart Contract structure
@@ -36,6 +37,12 @@ type Container struct {
 	Timestamp string `json:"timestamp"`
 	Location  string `json:"location"`
 	Holder  string `json:"holder"`
+}
+
+type Response struct {
+	Name       		string `json:"name"`
+	Model       	string `json:"model"`
+	Manufacturer    string `json:"manufacturer"`
 }
 
 /*
@@ -53,6 +60,8 @@ func (s *SmartContract) Init(APIstub shim.ChaincodeStubInterface) sc.Response {
  called when an application requests to run the Smart Contract "container-chaincode"
  The app also specifies the specific smart contract function to call with args
  */
+
+ // https://hyperledger-fabric.readthedocs.io/en/release-1.4/chaincode4ade.html
 func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response {
 
 	// Retrieve the requested Smart Contract function and arguments
@@ -97,7 +106,7 @@ Will add test data (10 containers) to our network
  */
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
 	containers := []Container{
-		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: "1504054225", Holder: "Miriam"},
+		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: "1504054225", Holder: "Alex"},
 		Container{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: "1504057825", Holder: "Dave"},
 		Container{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: "1493517025", Holder: "Igor"},
 		Container{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: "1496105425", Holder: "Amalea"},
@@ -106,7 +115,7 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		Container{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: "1496104301", Holder: "Leila"},
 		Container{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: "1485066691", Holder: "Yuan"},
 		Container{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: "1485153091", Holder: "Carlo"},
-		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: "1487745091", Holder: "Fatima"},
+		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: "1487745091", Holder: "Bobby"},
 	}
 
 	i := 0
@@ -219,7 +228,19 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 		return shim.Error(fmt.Sprintf("Failed to change container holder: %s", args[0]))
 	}
 
-	return shim.Success(nil)
+	// initiate IOTA transaction
+	iota.TransferTokens()
+	var randomNumber = iota.Random()
+
+	fmt.Println("randomNumber", randomNumber)
+	
+	rsp := &Response{}
+	if err := iota.MakeRequest1("https://swapi.co/api/vehicles/42", rsp); err != nil {
+		fmt.Println(666, err)
+	}
+	// b := []byte("My string " + strconv.Itoa(randomNumber))
+
+	return shim.Success([]byte("changeContainerHolder success * "+ " | " + rsp.Name + " | " + strconv.Itoa(randomNumber)))
 }
 
 /*

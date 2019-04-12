@@ -3,15 +3,14 @@
  * Chaincode Invoke
 
 This code is based on code written by the Hyperledger Fabric community.
-  Original code can be found here: https://gerrit.hyperledger.org/r/#/c/14395/4/fabcar/enrollAdmin.js
- */
+Original code can be found here: https://gerrit.hyperledger.org/r/#/c/14395/4/fabcar/enrollAdmin.js
+*/
 
 const Fabric_Client = require('fabric-client');
 const Fabric_CA_Client = require('fabric-ca-client');
 const path = require('path');
 const os = require('os');
 
-//
 const fabric_client = new Fabric_Client();
 let fabric_ca_client = null;
 let admin_user = null;

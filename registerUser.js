@@ -4,12 +4,10 @@
 
 This code is based on code written by the Hyperledger Fabric community.
 Original code can be found here: https://gerrit.hyperledger.org/r/#/c/14395/4/fabcar/registerUser.js
-
 */
 
 const Fabric_Client = require('fabric-client');
 const Fabric_CA_Client = require('fabric-ca-client');
-
 const path = require('path');
 const os = require('os');
 
@@ -65,7 +63,7 @@ Fabric_Client.newDefaultKeyValueStore({ path: store_path
      member_user = user;
      return fabric_client.setUserContext(member_user);
 }).then(()=>{
-     console.log('adminUser was successfully registered and enrolled and is ready to intreact with the fabric network');
+     console.log('adminUser was successfully registered and enrolled and is ready to interact with the fabric network');
 }).catch(err => {
     console.error('Failed to register: ' + err);
 	if(err.toString().indexOf('Authorization') > -1) {

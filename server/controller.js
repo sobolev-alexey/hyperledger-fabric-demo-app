@@ -185,7 +185,8 @@ module.exports = {
 		    console.log("Assigning transaction_id: ", tx_id._transaction_id);
 
 		    // recordContainer - requires 5 args, ID, vessel, location, timestamp, holder - ex: args: ['10', 'Hound', '-12.021, 28.012', '1504054225', 'Hansel'],
-		    // send proposal to endorser
+			// send proposal to endorser
+			// https://fabric-sdk-node.github.io/global.html#ChaincodeInvokeRequest
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
 		        chaincodeId: 'fabric-demo-app',
@@ -195,7 +196,8 @@ module.exports = {
 		        txId: tx_id
 		    };
 
-		    // send the transaction proposal to the peers
+			// send the transaction proposal to the peers
+			// https://fabric-sdk-node.github.io/Channel.html#sendTransactionProposal__anchor
 		    return channel.sendTransactionProposal(request);
 		}).then(results => {
 		    const proposalResponses = results[0];
@@ -350,7 +352,7 @@ module.exports = {
 		        txId: tx_id
 		    };
 
-		    // send the transaction proposal to the peers
+			// send the transaction proposal to the peers
 		    return channel.sendTransactionProposal(request);
 		}).then(results => {
 		    const proposalResponses = results[0];
@@ -381,6 +383,7 @@ module.exports = {
 		        const transaction_id_string = tx_id.getTransactionID(); //Get the transaction ID string to be used by the event processing
 				const promises = [];
 
+				// https://fabric-sdk-node.github.io/Channel.html#sendTransactionProposal__anchor
 		        const sendPromise = channel.sendTransaction(request);
 		        promises.push(sendPromise); //we want the send transaction first, so that we know where to check status
 
