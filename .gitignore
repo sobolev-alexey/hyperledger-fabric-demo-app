@@ -6,7 +6,6 @@
 
 # misc
 .DS_Store
-.env
 
 yarn-debug.log*
 yarn-error.log*
