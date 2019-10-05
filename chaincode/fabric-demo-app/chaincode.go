@@ -229,7 +229,7 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	}
 
 	// initiate IOTA transaction
-	iota.TransferTokens()
+	// iota.TransferTokens()
 	var randomNumber = iota.Random()
 
 	fmt.Println("randomNumber", randomNumber)
