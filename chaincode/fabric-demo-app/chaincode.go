@@ -127,6 +127,9 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		i = i + 1
 	}
 
+	APIstub.PutState("IOTA_seed", nil)
+	APIstub.PutState("IOTA_mamstate", nil)
+
 	return shim.Success(nil)
 }
 
@@ -237,13 +240,35 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	}
 	// b := []byte("My string " + strconv.Itoa(randomNumber))
 
-	return shim.Success([]byte("changeContainerHolder success * "+ " | " + rsp.Name))
-	// const jsonData1 = `
-	// 	{"Name": "Alice", "Age": 25}
-	// 	{"Name": "Bob", "Age": 22}
-	// `
-	// PublishAndStoreState(jsonData1, false)
-	// fmt.Println("randomNumber", 777)
+	// APIstub.PutState("IOTA_seed", "")
+	// APIstub.PutState("IOTA_mamstate", "")
+	seed, _ := APIstub.GetState("IOTA_seed")
+	mamstate, _ := APIstub.GetState("IOTA_mamstate")
+	if seed == nil {
+		const jsonData1 = `
+			{"Name": "Alice", "Age": 25}
+			{"Name": "Bob", "Age": 22}
+		`
+
+		seed, mamstate, root := iota.PublishAndReturnState(jsonData1, false, "", "")
+		APIstub.PutState("IOTA_seed", []byte(seed))
+		APIstub.PutState("IOTA_mamstate", []byte(mamstate))
+		
+		return shim.Success([]byte("changeContainerHolder success 11 * " + " | " + rsp.Name + " | " + root))
+	} else {
+		const jsonData2 = `
+			{"Name": "Charlie", "Age": 35}
+			{"Name": "Dave", "Age": 42}
+		`
+
+		seed, mamstate, root := iota.PublishAndReturnState(jsonData2, true, string(seed), string(mamstate))
+		APIstub.PutState("IOTA_seed", []byte(seed))
+		APIstub.PutState("IOTA_mamstate", []byte(mamstate))
+		
+		return shim.Success([]byte("changeContainerHolder success 22 * " + " | " + rsp.Name + " | " + root))
+	}
+
+	return shim.Success([]byte("changeContainerHolder success * " + " | " + rsp.Name))
 
 	// return shim.Success([]byte("changeContainerHolder success 11122"))
 }

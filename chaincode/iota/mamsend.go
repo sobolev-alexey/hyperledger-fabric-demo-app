@@ -19,33 +19,27 @@ var (
 	sideKey     = env.String("SIDE_KEY", "")
 )
 
-func PublishAndStoreState(messages string, useTransmitter bool) {
+func PublishAndReturnState(messages string, useTransmitter bool, seedFromStorage string, mamStateFromStorage string) (string, string, string) {
 	var t *mam.Transmitter = nil
 	if useTransmitter == true {
-		seedFromStorage := Read("seed")
-		mamStateFromStorage := Read("mamstate")
 		mamState := StringToMamState(mamStateFromStorage)
 		t = ReconstructTransmitter(seedFromStorage, mamState)
 	}
 
-	transmitter, seed := Publish(messages, t)
+	transmitter, seed, root := Publish(messages, t)
 	channel := transmitter.Channel()
 
-	Store(MamStateToString(channel), "mamstate")
-	Store(seed, "seed")
+	return seed, MamStateToString(channel), root
 }
 
-func Publish(messages string, t *mam.Transmitter) (*mam.Transmitter, string) {
-
+func Publish(messages string, t *mam.Transmitter) (*mam.Transmitter, string, string) {
 	reader := strings.NewReader(messages)
 	dec := json.NewDecoder(reader)
-
 
 	cm, err := mam.ParseChannelMode(mode.Get())
 	if err != nil {
 		log.Fatal(err)
 	}
-
 
 	api := GetApi()
 	if api == nil {
@@ -53,6 +47,7 @@ func Publish(messages string, t *mam.Transmitter) (*mam.Transmitter, string) {
 	}
 
 	transmitter, seed := GetTransmitter(t, api, cm)
+	initialRoot := ""
 
 	for {
 	    // Read one JSON object and store it in a map.
@@ -75,9 +70,12 @@ func Publish(messages string, t *mam.Transmitter) (*mam.Transmitter, string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("transmitted to root %q\n", root)
 
+		if initialRoot == "" {
+			initialRoot = root
+		}
+		fmt.Printf("transmitted to root %q\n", root)
 	}
 
-	return transmitter, seed
+	return transmitter, seed, initialRoot
 }
