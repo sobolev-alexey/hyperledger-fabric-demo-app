@@ -22,7 +22,7 @@ import (
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
-	"github.com/fabric-demo-app/iota"
+	"github.com/iota"
 )
 
 // Define the Smart Contract structure
@@ -229,18 +229,23 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	}
 
 	// initiate IOTA transaction
-	// iota.TransferTokens()
-	var randomNumber = iota.Random()
+	// TransferTokens()
 
-	fmt.Println("randomNumber", randomNumber)
-	
 	rsp := &Response{}
 	if err := iota.MakeRequest1("https://swapi.co/api/vehicles/42", rsp); err != nil {
 		fmt.Println(666, err)
 	}
 	// b := []byte("My string " + strconv.Itoa(randomNumber))
 
-	return shim.Success([]byte("changeContainerHolder success * "+ " | " + rsp.Name + " | " + strconv.Itoa(randomNumber)))
+	return shim.Success([]byte("changeContainerHolder success * "+ " | " + rsp.Name))
+	// const jsonData1 = `
+	// 	{"Name": "Alice", "Age": 25}
+	// 	{"Name": "Bob", "Age": 22}
+	// `
+	// PublishAndStoreState(jsonData1, false)
+	// fmt.Println("randomNumber", 777)
+
+	// return shim.Success([]byte("changeContainerHolder success 11122"))
 }
 
 /*
