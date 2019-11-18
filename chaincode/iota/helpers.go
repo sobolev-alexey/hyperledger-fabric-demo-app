@@ -1,8 +1,8 @@
 package iota
 
 import (
-  "math/rand"
-  "time"
+  "crypto/rand"
+  "math/big"
   "log"
   "fmt"
   "encoding/json"
@@ -23,25 +23,37 @@ const mwm = 9
 const depth = 3
 
 func GenerateSeed() string {
-  var seed string
+  seed := ""
   alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ9"
-  r := rand.New(rand.NewSource(time.Now().Unix()))
 
   for i := 0; i < 81; i++ {
-    seed += string(alphabet[r.Intn(len(alphabet))])
+    n, err := rand.Int(rand.Reader, big.NewInt(27))
+    if err != nil {
+      log.Fatal(err)
+    }
+    seed += string(alphabet[n.Int64()])
   }
   return seed
 }
 
-func GetTransmitter(t *mam.Transmitter, api *api.API, cm mam.ChannelMode) (*mam.Transmitter, string) {
+func GetTransmitter(t *mam.Transmitter, mode string, sideKey string) (*mam.Transmitter, string) {
+  cm, err := mam.ParseChannelMode(mode)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	api := GetApi()
+	if api == nil {
+		log.Fatal(err)
+  }
+  
   switch {
     case t != nil:
       return t, ""
     default:
       seed := GenerateSeed()
       transmitter := mam.NewTransmitter(api, seed, uint64(mwm), consts.SecurityLevelMedium)
-      if err := transmitter.SetMode(cm, ""); err != nil {
-      // if err := transmitter.SetMode(cm, sideKey.Get()); err != nil {
+      if err := transmitter.SetMode(cm, sideKey); err != nil {
         log.Fatal(err)
       }
       return transmitter, seed

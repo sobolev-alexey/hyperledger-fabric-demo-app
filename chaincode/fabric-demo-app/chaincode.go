@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
@@ -39,10 +40,16 @@ type Container struct {
 	Holder  string `json:"holder"`
 }
 
-type Response struct {
-	Name       		string `json:"name"`
-	Model       	string `json:"model"`
-	Manufacturer    string `json:"manufacturer"`
+type IotaPayload struct {
+	Seed        string `json:"seed"`
+	MamState    string `json:"mamState"`
+	Root        string `json:"root"`
+}
+
+type IotaConnector struct {
+	Provider    string `json:"provider"`
+	Mode       	string `json:"mode"`
+	SideKey     string `json:"sideKey"`
 }
 
 /*
@@ -105,18 +112,23 @@ func (s *SmartContract) queryContainer(APIstub shim.ChaincodeStubInterface, args
 Will add test data (10 containers) to our network
  */
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
+	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
 	containers := []Container{
-		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: "1504054225", Holder: "Alex"},
-		Container{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: "1504057825", Holder: "Dave"},
-		Container{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: "1493517025", Holder: "Igor"},
-		Container{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: "1496105425", Holder: "Amalea"},
-		Container{Vessel: "S439", Location: "-107.6043, 19.5003", Timestamp: "1493512301", Holder: "Rafa"},
-		Container{Vessel: "J205", Location: "-155.2304, -15.8723", Timestamp: "1494117101", Holder: "Shen"},
-		Container{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: "1496104301", Holder: "Leila"},
-		Container{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: "1485066691", Holder: "Yuan"},
-		Container{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: "1485153091", Holder: "Carlo"},
-		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: "1487745091", Holder: "Bobby"},
+		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: timestamp, Holder: "Alex"},
+		Container{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: timestamp, Holder: "Dave"},
+		Container{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: timestamp, Holder: "Igor"},
+		Container{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: timestamp, Holder: "Amalea"},
+		Container{Vessel: "S439", Location: "-107.6043, 19.5003", Timestamp: timestamp, Holder: "Rafael"},
+		Container{Vessel: "J205", Location: "-155.2304, -15.8723", Timestamp: timestamp, Holder: "Shen"},
+		Container{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: timestamp, Holder: "Leila"},
+		Container{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: timestamp, Holder: "Yuan"},
+		Container{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: timestamp, Holder: "Carlo"},
+		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Bobby"},
 	}
+
+	iotaConnector := IotaConnector{Provider: "https://nodes.devnet.iota.org", Mode: "public", SideKey: ""}
+	iotaConnectorAsBytes, _ := json.Marshal(iotaConnector)
+	APIstub.PutState("IotaConnector", iotaConnectorAsBytes)
 
 	i := 0
 	for i < len(containers) {
@@ -124,11 +136,16 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		containerAsBytes, _ := json.Marshal(containers[i])
 		APIstub.PutState(strconv.Itoa(i+1), containerAsBytes)
 		fmt.Println("Added", containers[i])
+
+		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", "public", "")
+		fmt.Println("Seed_2", seed, strconv.Itoa(i+1), containers[i], root)
+		iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root}
+		iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
+
+		APIstub.PutState("IOTA_" + strconv.Itoa(i+1), iotaPayloadAsBytes)
+
 		i = i + 1
 	}
-
-	APIstub.PutState("IOTA_seed", nil)
-	APIstub.PutState("IOTA_mamstate", nil)
 
 	return shim.Success(nil)
 }
@@ -181,6 +198,15 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 		if err != nil {
 			return shim.Error(err.Error())
 		}
+
+		var iotaPayloadAsBytes = []byte(nil)
+		iotaPayloadAsBytes, _ = APIstub.GetState("IOTA_" + queryResponse.Key)
+		if iotaPayloadAsBytes == nil {
+			return shim.Error("Could not locate container")
+		}
+		var iotaPayload = IotaPayload{}
+		json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
+
 		// Add comma before array members,suppress it for the first array member
 		if bArrayMemberAlreadyWritten == true {
 			buffer.WriteString(",")
@@ -193,6 +219,9 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 		buffer.WriteString(", \"Record\":")
 		// Record is a JSON object, so we write as-is
 		buffer.WriteString(string(queryResponse.Value))
+		buffer.WriteString(", \"Root\":")
+		// Record is a JSON object, so we write as-is
+		buffer.WriteString("\"" + string(iotaPayload.Root) + "\"")
 		buffer.WriteString("}")
 		bArrayMemberAlreadyWritten = true
 	}
@@ -231,46 +260,21 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 		return shim.Error(fmt.Sprintf("Failed to change container holder: %s", args[0]))
 	}
 
-	// initiate IOTA transaction
-	// TransferTokens()
-
-	rsp := &Response{}
-	if err := iota.MakeRequest1("https://swapi.co/api/vehicles/42", rsp); err != nil {
-		fmt.Println(666, err)
+	// var iotaPayloadAsBytes = []byte(nil)
+	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
+	if iotaPayloadAsBytes == nil {
+		return shim.Error("Could not locate container")
 	}
-	// b := []byte("My string " + strconv.Itoa(randomNumber))
+	iotaPayload := IotaPayload{}
+	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
 
-	// APIstub.PutState("IOTA_seed", "")
-	// APIstub.PutState("IOTA_mamstate", "")
-	seed, _ := APIstub.GetState("IOTA_seed")
-	mamstate, _ := APIstub.GetState("IOTA_mamstate")
-	if seed == nil {
-		const jsonData1 = `
-			{"Name": "Alice", "Age": 25}
-			{"Name": "Bob", "Age": 22}
-		`
 
-		seed, mamstate, root := iota.PublishAndReturnState(jsonData1, false, "", "")
-		APIstub.PutState("IOTA_seed", []byte(seed))
-		APIstub.PutState("IOTA_mamstate", []byte(mamstate))
-		
-		return shim.Success([]byte("changeContainerHolder success 11 * " + " | " + rsp.Name + " | " + root))
-	} else {
-		const jsonData2 = `
-			{"Name": "Charlie", "Age": 35}
-			{"Name": "Dave", "Age": 42}
-		`
+	mamState, _, _ := iota.PublishAndReturnState(string(containerAsBytes), true, iotaPayload.Seed, iotaPayload.MamState, "public", "")
+	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root}
+	iotaPayloadNewAsBytes, _ := json.Marshal(iotaPayloadNew)
+	APIstub.PutState("IOTA_" + args[0], iotaPayloadNewAsBytes)
 
-		seed, mamstate, root := iota.PublishAndReturnState(jsonData2, true, string(seed), string(mamstate))
-		APIstub.PutState("IOTA_seed", []byte(seed))
-		APIstub.PutState("IOTA_mamstate", []byte(mamstate))
-		
-		return shim.Success([]byte("changeContainerHolder success 22 * " + " | " + rsp.Name + " | " + root))
-	}
-
-	return shim.Success([]byte("changeContainerHolder success * " + " | " + rsp.Name))
-
-	// return shim.Success([]byte("changeContainerHolder success 11122"))
+	return shim.Success([]byte("changeContainerHolder success | " + iotaPayload.Root))
 }
 
 /*

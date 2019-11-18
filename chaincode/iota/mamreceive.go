@@ -4,58 +4,49 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/simia-tech/env"
-
 	"github.com/iotaledger/iota.go/api"
 	"github.com/iotaledger/iota.go/mam/v1"
 )
 
-func Fetch() {
-  var (
-  	endpointURL = env.String("ENDPOINT_URL", "https://nodes.devnet.iota.org")
-  	mode        = env.String("MODE", "public", env.AllowedValues("public", "private", "restricted"))
-  	sideKey     = env.String("SIDE_KEY", "")
-  	root 		= env.String("ROOT", "YFJPUERTLJFE9GCDYOKVIACLDSFZV99KUDRYOQZZWNRONRJYJZMOTWSTCCKROWIQJBYSKKECRWXCKIHGZ")
-  )
+func Fetch(endpointURL string, root, string, mode string, sideKey string) {
+	// var endpointURL = "https://nodes.devnet.iota.org"
+	// var mode        = "public"
+	// var sideKey     = ""
+	// var root 		= "YFJPUERTLJFE9GCDYOKVIACLDSFZV99KUDRYOQZZWNRONRJYJZMOTWSTCCKROWIQJBYSKKECRWXCKIHGZ"
 
-  currentRoot := root.Get()
+  	currentRoot := root
 
-	cm, err := mam.ParseChannelMode(mode.Get())
+	cm, err := mam.ParseChannelMode(mode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	api, err := api.ComposeAPI(api.HTTPClientSettings{
-		URI: endpointURL.Get(),
+		URI: endpointURL,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	receiver := mam.NewReceiver(api)
-	if err := receiver.SetMode(cm, sideKey.Get()); err != nil {
+	if err := receiver.SetMode(cm, sideKey); err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Printf("receive root %q from %s channel...\n", currentRoot, cm)
 
-  loop:
-  	nextRoot, messages, err := receiver.Receive(currentRoot)
-  	if err != nil {
-  		log.Fatal(err)
-  	}
-
-  	for _, message := range messages {
-  		fmt.Println(message)
-  	}
-
-    // fmt.Println("messages length", len(messages))
-		if len(messages) > 0 {
-			currentRoot = nextRoot
-      goto loop
+	loop:
+		nextRoot, messages, err := receiver.Receive(currentRoot)
+		if err != nil {
+			log.Fatal(err)
 		}
 
-  	if len(messages) == 0 {
-  		// fmt.Println("no messages found")
-  	}
+		for _, message := range messages {
+			fmt.Println(message)
+		}
+
+		if len(messages) > 0 {
+			currentRoot = nextRoot
+      		goto loop
+		}
 }
