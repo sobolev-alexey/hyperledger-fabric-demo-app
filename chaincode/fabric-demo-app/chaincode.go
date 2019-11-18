@@ -230,9 +230,18 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 		buffer.WriteString(", \"Record\":")
 		// Record is a JSON object, so we write as-is
 		buffer.WriteString(string(queryResponse.Value))
+		
+		// IOTA MAM stream values
+		messages := iota.Fetch(iotaPayload.Root, iotaPayload.Mode, iotaPayload.SideKey)
+		for _, message := range messages {
+			buffer.WriteString(", \"MAM\":")
+			buffer.WriteString(message)
+		}
 		buffer.WriteString(", \"Root\":")
-		// Record is a JSON object, so we write as-is
 		buffer.WriteString("\"" + string(iotaPayload.Root) + "\"")
+		buffer.WriteString(", \"SideKey\":")
+		buffer.WriteString("\"" + string(iotaPayload.SideKey) + "\"")
+
 		buffer.WriteString("}")
 		bArrayMemberAlreadyWritten = true
 	}
