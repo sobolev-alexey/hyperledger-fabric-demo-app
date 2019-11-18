@@ -199,12 +199,11 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 			return shim.Error(err.Error())
 		}
 
-		var iotaPayloadAsBytes = []byte(nil)
-		iotaPayloadAsBytes, _ = APIstub.GetState("IOTA_" + queryResponse.Key)
+		iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + queryResponse.Key)
 		if iotaPayloadAsBytes == nil {
 			return shim.Error("Could not locate container")
 		}
-		var iotaPayload = IotaPayload{}
+		iotaPayload := IotaPayload{}
 		json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
 
 		// Add comma before array members,suppress it for the first array member
@@ -260,14 +259,12 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 		return shim.Error(fmt.Sprintf("Failed to change container holder: %s", args[0]))
 	}
 
-	// var iotaPayloadAsBytes = []byte(nil)
 	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
 	if iotaPayloadAsBytes == nil {
 		return shim.Error("Could not locate container")
 	}
 	iotaPayload := IotaPayload{}
 	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
-
 
 	mamState, _, _ := iota.PublishAndReturnState(string(containerAsBytes), true, iotaPayload.Seed, iotaPayload.MamState, "public", "")
 	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root}
