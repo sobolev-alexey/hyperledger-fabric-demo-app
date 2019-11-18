@@ -22,7 +22,7 @@ func PublishAndReturnState(message string, useTransmitter bool, seedFromStorage 
 func Publish(message string, t *mam.Transmitter, mode string, sideKey string) (*mam.Transmitter, string, string) {
 	transmitter, seed := GetTransmitter(t, mode, sideKey)
 
-	root, err := transmitter.Transmit(message, "HYPERLEDGER")
+	root, err := transmitter.Transmit(message, transactionTag)
 	if err != nil {
 		log.Fatal(err)
 	}

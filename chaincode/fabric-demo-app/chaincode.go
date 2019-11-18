@@ -44,10 +44,6 @@ type IotaPayload struct {
 	Seed        string `json:"seed"`
 	MamState    string `json:"mamState"`
 	Root        string `json:"root"`
-}
-
-type IotaConnector struct {
-	Provider    string `json:"provider"`
 	Mode       	string `json:"mode"`
 	SideKey     string `json:"sideKey"`
 }
@@ -126,10 +122,6 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Bobby"},
 	}
 
-	iotaConnector := IotaConnector{Provider: "https://nodes.devnet.iota.org", Mode: "public", SideKey: ""}
-	iotaConnectorAsBytes, _ := json.Marshal(iotaConnector)
-	APIstub.PutState("IotaConnector", iotaConnectorAsBytes)
-
 	i := 0
 	for i < len(containers) {
 		fmt.Println("i is ", i)
@@ -137,9 +129,15 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		APIstub.PutState(strconv.Itoa(i+1), containerAsBytes)
 		fmt.Println("Added", containers[i])
 
-		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", "public", "")
-		fmt.Println("Seed_2", seed, strconv.Itoa(i+1), containers[i], root)
-		iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root}
+		// Define own values for IOTA MAM message mode and MAM message encryption key
+		// If not set, default values from iota/config.go file will be used
+		mode := iota.MamMode
+		sideKey := iota.PadSideKey(iota.GenerateRandomSeedString(50)) // iota.PadSideKey(iota.MamSideKey)
+
+		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
+		fmt.Println("Seed", seed, strconv.Itoa(i+1), containers[i], root, sideKey, mode)
+		
+		iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
 		iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
 
 		APIstub.PutState("IOTA_" + strconv.Itoa(i+1), iotaPayloadAsBytes)
@@ -157,17 +155,31 @@ This method takes in five arguments (attributes to be saved in the ledger).
  */
 func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
 
-	if len(args) != 5 {
-		return shim.Error("Incorrect number of arguments. Expecting 5")
+	if len(args) != 4 {
+		return shim.Error("Incorrect number of arguments. Expecting 4")
 	}
 
-	var container = Container{ Vessel: args[1], Location: args[2], Timestamp: args[3], Holder: args[4] }
+	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
+	var container = Container{ Vessel: args[1], Location: args[2], Timestamp: timestamp, Holder: args[3] }
 
 	containerAsBytes, _ := json.Marshal(container)
 	err := APIstub.PutState(args[0], containerAsBytes)
 	if err != nil {
 		return shim.Error(fmt.Sprintf("Failed to record container: %s", args[0]))
 	}
+
+	// Define own values for IOTA MAM message mode and MAM message encryption key
+	// If not set, default values from iota/config.go file will be used
+	mode := iota.MamMode
+	sideKey := iota.PadSideKey(iota.GenerateRandomSeedString(50)) // iota.PadSideKey(iota.MamSideKey)
+
+	mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
+	fmt.Println("Seed", seed, args[0], container, root, sideKey, mode)
+	
+	iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
+	iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
+
+	APIstub.PutState("IOTA_" + args[0], iotaPayloadAsBytes)
 
 	return shim.Success(nil)
 }
@@ -253,6 +265,9 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	// we are skipping this check for this example
 	container.Holder = args[1]
 
+	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
+	container.Timestamp = timestamp
+
 	containerAsBytes, _ = json.Marshal(container)
 	err := APIstub.PutState(args[0], containerAsBytes)
 	if err != nil {
@@ -261,13 +276,13 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 
 	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
 	if iotaPayloadAsBytes == nil {
-		return shim.Error("Could not locate container")
+		return shim.Error("Could not locate IOTA state object")
 	}
 	iotaPayload := IotaPayload{}
 	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
 
-	mamState, _, _ := iota.PublishAndReturnState(string(containerAsBytes), true, iotaPayload.Seed, iotaPayload.MamState, "public", "")
-	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root}
+	mamState, _, _ := iota.PublishAndReturnState(string(containerAsBytes), true, iotaPayload.Seed, iotaPayload.MamState, iotaPayload.Mode, iotaPayload.SideKey)
+	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root, Mode: iotaPayload.Mode, SideKey: iotaPayload.SideKey}
 	iotaPayloadNewAsBytes, _ := json.Marshal(iotaPayloadNew)
 	APIstub.PutState("IOTA_" + args[0], iotaPayloadNewAsBytes)
 

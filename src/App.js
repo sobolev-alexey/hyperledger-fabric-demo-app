@@ -41,8 +41,7 @@ class App extends Component {
           key: newContainerId,
           holder: holderName,
           vessel: vesselName,
-          location: `${longitude}, ${latitude}`,
-          timestamp: Date.now().toString()
+          location: `${longitude}, ${latitude}`
         }),
       })
       .then(response => response.json())

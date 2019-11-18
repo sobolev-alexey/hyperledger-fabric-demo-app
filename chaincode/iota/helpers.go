@@ -14,19 +14,11 @@ import (
   "github.com/iotaledger/iota.go/trinary"
 )
 
-const endpoint = "https://nodes.devnet.iota.org"
-
-// difficulty of the proof of work required to attach a transaction on the tangle
-const mwm = 9
-
-// how many milestones back to start the random walk from
-const depth = 3
-
-func GenerateSeed() string {
+func GenerateRandomSeedString(length int) string {
   seed := ""
   alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ9"
 
-  for i := 0; i < 81; i++ {
+  for i := 0; i < length; i++ {
     n, err := rand.Int(rand.Reader, big.NewInt(27))
     if err != nil {
       log.Fatal(err)
@@ -34,6 +26,10 @@ func GenerateSeed() string {
     seed += string(alphabet[n.Int64()])
   }
   return seed
+}
+
+func PadSideKey(sideKey string) string {
+  return trinary.Pad(sideKey, 81)
 }
 
 func GetTransmitter(t *mam.Transmitter, mode string, sideKey string) (*mam.Transmitter, string) {
@@ -51,9 +47,9 @@ func GetTransmitter(t *mam.Transmitter, mode string, sideKey string) (*mam.Trans
     case t != nil:
       return t, ""
     default:
-      seed := GenerateSeed()
+      seed := GenerateRandomSeedString(81)
       transmitter := mam.NewTransmitter(api, seed, uint64(mwm), consts.SecurityLevelMedium)
-      if err := transmitter.SetMode(cm, sideKey); err != nil {
+      if err := transmitter.SetMode(cm, PadSideKey(sideKey)); err != nil {
         log.Fatal(err)
       }
       return transmitter, seed

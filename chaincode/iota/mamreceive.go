@@ -1,19 +1,13 @@
 package iota
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/iotaledger/iota.go/api"
 	"github.com/iotaledger/iota.go/mam/v1"
 )
 
-func Fetch(endpointURL string, root, string, mode string, sideKey string) {
-	// var endpointURL = "https://nodes.devnet.iota.org"
-	// var mode        = "public"
-	// var sideKey     = ""
-	// var root 		= "YFJPUERTLJFE9GCDYOKVIACLDSFZV99KUDRYOQZZWNRONRJYJZMOTWSTCCKROWIQJBYSKKECRWXCKIHGZ"
-
+func Fetch(root string, mode string, sideKey string) []string {
   	currentRoot := root
 
 	cm, err := mam.ParseChannelMode(mode)
@@ -22,7 +16,7 @@ func Fetch(endpointURL string, root, string, mode string, sideKey string) {
 	}
 
 	api, err := api.ComposeAPI(api.HTTPClientSettings{
-		URI: endpointURL,
+		URI: endpoint,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -33,7 +27,7 @@ func Fetch(endpointURL string, root, string, mode string, sideKey string) {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("receive root %q from %s channel...\n", currentRoot, cm)
+	var channelMessages []string
 
 	loop:
 		nextRoot, messages, err := receiver.Receive(currentRoot)
@@ -41,12 +35,11 @@ func Fetch(endpointURL string, root, string, mode string, sideKey string) {
 			log.Fatal(err)
 		}
 
-		for _, message := range messages {
-			fmt.Println(message)
-		}
-
 		if len(messages) > 0 {
 			currentRoot = nextRoot
+			channelMessages = append(channelMessages, messages...)
       		goto loop
 		}
+
+	return channelMessages
 }
