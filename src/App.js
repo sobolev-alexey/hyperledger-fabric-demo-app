@@ -102,8 +102,9 @@ class App extends Component {
         .then(data => {
           if (data.success && data.result) {
             this.setState({ 
-              allContainers: [{ Key: containerId, Record: JSON.parse(data.result) }]
+              allContainers: [{ Key: containerId, Record: JSON.parse(data.result).container }]
             });
+            console.log(JSON.parse(data.result).messages)
           } else {
             console.error(data.error);
           }

@@ -10,6 +10,6 @@ const depth = 3
 
 const transactionTag = "HYPERLEDGER"
 
-const MamMode = "restricted"
+const MamMode = "public" // "restricted" "private"
 
 const MamSideKey = ""

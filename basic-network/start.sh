@@ -15,7 +15,7 @@ docker-compose -f docker-compose.yml down
 docker-compose -f docker-compose.yml up -d ca.example.com orderer.example.com peer0.org1.example.com couchdb
 
 # wait for Hyperledger Fabric to start
-# incase of errors when running later commands, issue export FABRIC_START_TIMEOUT=<larger number>
+# in case of errors when running later commands, issue export FABRIC_START_TIMEOUT=<larger number>
 export FABRIC_START_TIMEOUT=10
 #echo ${FABRIC_START_TIMEOUT}
 sleep ${FABRIC_START_TIMEOUT}

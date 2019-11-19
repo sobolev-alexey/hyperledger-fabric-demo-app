@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
@@ -86,24 +87,6 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 }
 
 /*
- * The queryContainer method *
-Used to view the records of one particular container
-It takes one argument -- the key for the container in question
- */
-func (s *SmartContract) queryContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
-
-	if len(args) != 1 {
-		return shim.Error("Incorrect number of arguments. Expecting 1")
-	}
-
-	containerAsBytes, _ := APIstub.GetState(args[0])
-	if containerAsBytes == nil {
-		return shim.Error("Could not locate container")
-	}
-	return shim.Success(containerAsBytes)
-}
-
-/*
  * The initLedger method *
 Will add test data (10 containers) to our network
  */
@@ -124,24 +107,21 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 
 	i := 0
 	for i < len(containers) {
-		fmt.Println("i is ", i)
 		containerAsBytes, _ := json.Marshal(containers[i])
 		APIstub.PutState(strconv.Itoa(i+1), containerAsBytes)
-		fmt.Println("Added", containers[i])
 
 		// Define own values for IOTA MAM message mode and MAM message encryption key
 		// If not set, default values from iota/config.go file will be used
 		mode := iota.MamMode
-		sideKey := iota.PadSideKey(iota.GenerateRandomSeedString(50)) // iota.PadSideKey(iota.MamSideKey)
-
-		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
-		fmt.Println("Seed", seed, strconv.Itoa(i+1), containers[i], root, sideKey, mode)
+		sideKey := iota.PadSideKey(iota.MamSideKey) // iota.PadSideKey(iota.GenerateRandomSeedString(50))
 		
+		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
 		iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
 		iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
-
 		APIstub.PutState("IOTA_" + strconv.Itoa(i+1), iotaPayloadAsBytes)
 
+		fmt.Println("New Asset", strconv.Itoa(i+1), containers[i], root, mode, sideKey)
+		
 		i = i + 1
 	}
 
@@ -154,7 +134,6 @@ Container owners like Sarah would use to record each of her containers.
 This method takes in five arguments (attributes to be saved in the ledger). 
  */
 func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
-
 	if len(args) != 4 {
 		return shim.Error("Incorrect number of arguments. Expecting 4")
 	}
@@ -171,17 +150,57 @@ func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, arg
 	// Define own values for IOTA MAM message mode and MAM message encryption key
 	// If not set, default values from iota/config.go file will be used
 	mode := iota.MamMode
-	sideKey := iota.PadSideKey(iota.GenerateRandomSeedString(50)) // iota.PadSideKey(iota.MamSideKey)
-
-	mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
-	fmt.Println("Seed", seed, args[0], container, root, sideKey, mode)
+	sideKey := iota.PadSideKey(iota.MamSideKey) // iota.PadSideKey(iota.GenerateRandomSeedString(50))
 	
+	mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)	
 	iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
 	iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
-
 	APIstub.PutState("IOTA_" + args[0], iotaPayloadAsBytes)
 
+	fmt.Println("New Asset", args[0], container, root, mode, sideKey)
+
 	return shim.Success(nil)
+}
+
+/*
+ * The queryContainer method *
+Used to view the records of one particular container
+It takes one argument -- the key for the container in question
+ */
+ func (s *SmartContract) queryContainer(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+	if len(args) != 1 {
+		return shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+
+	containerAsBytes, _ := APIstub.GetState(args[0])
+	if containerAsBytes == nil {
+		return shim.Error("Could not locate container")
+	}
+	container := Container{}
+	json.Unmarshal(containerAsBytes, &container)
+
+	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
+	if iotaPayloadAsBytes == nil {
+		return shim.Error("Could not locate IOTA state object")
+	}
+	iotaPayload := IotaPayload{}
+	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
+
+	mamstate := map[string]interface{}{}
+	mamstate["root"] = iotaPayload.Root
+	mamstate["sideKey"] = iotaPayload.SideKey
+
+	// IOTA MAM stream values
+	messages := iota.Fetch(iotaPayload.Root, iotaPayload.Mode, iotaPayload.SideKey)
+
+	out := map[string]interface{}{}
+	out["container"] = container
+	out["mamstate"] = mamstate
+	out["messages"] = strings.Join(messages, ", ")
+	
+	result, _ := json.Marshal(out)
+
+	return shim.Success(result)
 }
 
 /*
@@ -190,7 +209,6 @@ allows for assessing all the records added to the ledger(all containers)
 This method does not take any arguments. Returns JSON string containing results. 
  */
 func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) sc.Response {
-
 	startKey := "0"
 	endKey := "999"
 
@@ -211,13 +229,6 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 			return shim.Error(err.Error())
 		}
 
-		iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + queryResponse.Key)
-		if iotaPayloadAsBytes == nil {
-			return shim.Error("Could not locate container")
-		}
-		iotaPayload := IotaPayload{}
-		json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
-
 		// Add comma before array members,suppress it for the first array member
 		if bArrayMemberAlreadyWritten == true {
 			buffer.WriteString(",")
@@ -231,16 +242,17 @@ func (s *SmartContract) queryAllContainers(APIstub shim.ChaincodeStubInterface) 
 		// Record is a JSON object, so we write as-is
 		buffer.WriteString(string(queryResponse.Value))
 		
-		// IOTA MAM stream values
-		messages := iota.Fetch(iotaPayload.Root, iotaPayload.Mode, iotaPayload.SideKey)
-		for _, message := range messages {
-			buffer.WriteString(", \"MAM\":")
-			buffer.WriteString(message)
-		}
-		buffer.WriteString(", \"Root\":")
-		buffer.WriteString("\"" + string(iotaPayload.Root) + "\"")
-		buffer.WriteString(", \"SideKey\":")
-		buffer.WriteString("\"" + string(iotaPayload.SideKey) + "\"")
+		// iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + queryResponse.Key)
+		// if iotaPayloadAsBytes == nil {
+		// 	return shim.Error("Could not locate IOTA state object")
+		// }
+		// iotaPayload := IotaPayload{}
+		// json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
+
+		// buffer.WriteString(", \"Root\":")
+		// buffer.WriteString("\"" + string(iotaPayload.Root) + "\"")
+		// buffer.WriteString(", \"SideKey\":")
+		// buffer.WriteString("\"" + string(iotaPayload.SideKey) + "\"")
 
 		buffer.WriteString("}")
 		bArrayMemberAlreadyWritten = true
