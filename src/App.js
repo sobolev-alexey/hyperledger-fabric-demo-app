@@ -58,8 +58,15 @@ class App extends Component {
 
   changeHolder(event) {
     event.preventDefault();
-    const { newHolderContainerId, newHolderName } = this.state;
+    const { allContainers, newHolderContainerId, newHolderName } = this.state;
     if (newHolderContainerId && newHolderName) {
+      const container = allContainers.find(({ Key }) => Key === newHolderContainerId)
+      if (container && container.Record.holder === 'Distributor') {
+        console.error('Container arrived to distributor. No further change possible');
+        this.notifyError('Container arrived to distributor. No further change possible');
+        return
+      }
+
       fetch('change', {
         method: "POST",
         headers: {
