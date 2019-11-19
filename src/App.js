@@ -61,9 +61,9 @@ class App extends Component {
     const { allContainers, newHolderContainerId, newHolderName } = this.state;
     if (newHolderContainerId && newHolderName) {
       const container = allContainers.find(({ Key }) => Key === newHolderContainerId)
-      if (container && container.Record.holder === 'Distributor') {
-        console.error('Container arrived to distributor. No further change possible');
-        this.notifyError('Container arrived to distributor. No further change possible');
+      if (container && container.Record.holder === 'Retailer') {
+        console.error('Container arrived to retailer. No further change possible');
+        this.notifyError('Container arrived to retailer. No further change possible');
         return
       }
 
