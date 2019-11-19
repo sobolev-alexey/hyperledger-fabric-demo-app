@@ -11,7 +11,7 @@ class App extends Component {
       newHolderContainerId: '',
       newHolderName: '',
       newContainerId: '',
-      vesselName: '',
+      containerDescription: '',
       longitude: '',
       latitude: '',
       holderName: '',
@@ -30,8 +30,8 @@ class App extends Component {
 
   createRecord(event) {
     event.preventDefault();
-    const { newContainerId, vesselName, longitude, latitude, holderName } = this.state;
-    if (newContainerId && vesselName && longitude && latitude && holderName) {
+    const { newContainerId, containerDescription, longitude, latitude, holderName } = this.state;
+    if (newContainerId && containerDescription && longitude && latitude && holderName) {
       fetch('create', {
         method: "POST",
         headers: {
@@ -40,7 +40,7 @@ class App extends Component {
         body: JSON.stringify({
           key: newContainerId,
           holder: holderName,
-          vessel: vesselName,
+          description: containerDescription,
           location: `${longitude}, ${latitude}`
         }),
       })
@@ -157,7 +157,7 @@ class App extends Component {
                     <th>Timestamp</th>
                     <th>Holder</th>
                     <th>Container Location (Longitude, Latitude)</th>
-                    <th>Vessel</th>
+                    <th>Container Description</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,7 +170,7 @@ class App extends Component {
                         <td>{container.Record.timestamp}</td>
                         <td>{container.Record.holder}</td>
                         <td>{container.Record.location}</td>
-                        <td>{container.Record.vessel}</td>
+                        <td>{container.Record.description}</td>
                       </tr>
                     ))
                   }
@@ -197,14 +197,14 @@ class App extends Component {
               value={this.state.newContainerId}
               onChange={this.handleTextChange}
             />
-            Enter name of vessel: 
+            Enter container description: 
             <input 
               className="form-control" 
-              id="vesselName"
-              name="vesselName" 
+              id="containerDescription"
+              name="containerDescription" 
               type="text" 
               placeholder="Ex: 0239L" 
-              value={this.state.vesselName}
+              value={this.state.containerDescription}
               onChange={this.handleTextChange}
             />
             Enter longitude: 

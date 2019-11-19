@@ -34,7 +34,7 @@ type SmartContract struct {
 Structure tags are used by encoding/json library
 */
 type Container struct {
-	Vessel string `json:"vessel"`
+	Description string `json:"description"`
 	Timestamp string `json:"timestamp"`
 	Location  string `json:"location"`
 	Holder  string `json:"holder"`
@@ -110,16 +110,16 @@ Will add test data (10 containers) to our network
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
 	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
 	containers := []Container{
-		Container{Vessel: "923F", Location: "67.0006, -70.5476", Timestamp: timestamp, Holder: "Alex"},
-		Container{Vessel: "M83T", Location: "91.2395, -49.4594", Timestamp: timestamp, Holder: "Dave"},
-		Container{Vessel: "T012", Location: "58.0148, 59.01391", Timestamp: timestamp, Holder: "Igor"},
-		Container{Vessel: "P490", Location: "-45.0945, 0.7949", Timestamp: timestamp, Holder: "Amalea"},
-		Container{Vessel: "S439", Location: "-107.6043, 19.5003", Timestamp: timestamp, Holder: "Rafael"},
-		Container{Vessel: "J205", Location: "-155.2304, -15.8723", Timestamp: timestamp, Holder: "Shen"},
-		Container{Vessel: "S22L", Location: "103.8842, 22.1277", Timestamp: timestamp, Holder: "Leila"},
-		Container{Vessel: "EI89", Location: "-132.3207, -34.0983", Timestamp: timestamp, Holder: "Yuan"},
-		Container{Vessel: "129R", Location: "153.0054, 12.6429", Timestamp: timestamp, Holder: "Carlo"},
-		Container{Vessel: "49W4", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Bobby"},
+		Container{Description: "Apples", Location: "67.0006, -70.5476", Timestamp: timestamp, Holder: "Alex"},
+		Container{Description: "Oranges", Location: "91.2395, -49.4594", Timestamp: timestamp, Holder: "Dave"},
+		Container{Description: "Avocados", Location: "58.0148, 59.01391", Timestamp: timestamp, Holder: "Igor"},
+		Container{Description: "Pineapples", Location: "-45.0945, 0.7949", Timestamp: timestamp, Holder: "Amalea"},
+		Container{Description: "Olives", Location: "-107.6043, 19.5003", Timestamp: timestamp, Holder: "Rafael"},
+		Container{Description: "Mangos", Location: "-155.2304, -15.8723", Timestamp: timestamp, Holder: "Thomas"},
+		Container{Description: "Grapefruits", Location: "103.8842, 22.1277", Timestamp: timestamp, Holder: "Leila"},
+		Container{Description: "Watermelons", Location: "-132.3207, -34.0983", Timestamp: timestamp, Holder: "Yuan"},
+		Container{Description: "Bananas", Location: "153.0054, 12.6429", Timestamp: timestamp, Holder: "Carlo"},
+		Container{Description: "Clementines", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Bobby"},
 	}
 
 	i := 0
@@ -160,7 +160,7 @@ func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, arg
 	}
 
 	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
-	var container = Container{ Vessel: args[1], Location: args[2], Timestamp: timestamp, Holder: args[3] }
+	container := Container{ Description: args[1], Location: args[2], Timestamp: timestamp, Holder: args[3] }
 
 	containerAsBytes, _ := json.Marshal(container)
 	err := APIstub.PutState(args[0], containerAsBytes)

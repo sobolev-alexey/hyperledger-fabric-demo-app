@@ -145,7 +145,7 @@ module.exports = {
 	create_record: (req, res) => {
 		console.log("submit recording of a container: ");
 
-		const { key, location, vessel, holder } = req.body;
+		const { key, location, description, holder } = req.body;
 		const fabric_client = new Fabric_Client();
 
 		// setup the fabric network
@@ -184,14 +184,14 @@ module.exports = {
 		    tx_id = fabric_client.newTransactionID();
 		    console.log("Assigning transaction_id: ", tx_id._transaction_id);
 
-		    // recordContainer - requires 5 args, ID, vessel, location, holder - ex: args: ['10', 'Hound', '-12.021, 28.012', 'Hansel'],
+		    // recordContainer - requires 4 args, ID, description, location, holder - ex: args: ['10', 'Apples', '-12.021, 28.012', 'Hansel'],
 			// send proposal to endorser
 			// https://fabric-sdk-node.github.io/global.html#ChaincodeInvokeRequest
 		    const request = {
 		        //targets : --- letting this default to the peers assigned to the channel
 		        chaincodeId: 'fabric-demo-app',
 		        fcn: 'recordContainer',
-		        args: [key, vessel, location, holder],
+		        args: [key, description, location, holder],
 		        chainId: 'mychannel',
 		        txId: tx_id
 		    };
