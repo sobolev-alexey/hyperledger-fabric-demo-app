@@ -7,16 +7,11 @@ import (
 	"github.com/iotaledger/iota.go/bundle"
 	. "github.com/iotaledger/iota.go/consts"
 	"github.com/iotaledger/iota.go/pow"
-	// "github.com/iotaledger/iota.go/trinary"
+	"github.com/iotaledger/iota.go/trinary"
 )
 
-// must be 81 trytes long and truly random
-var seed = "ENVBMIYERKUPUOTDIB9GYSGPFNV9CIFELLIBIXEZOGUZRQHPKHXVKKSKJEEBJAFGGYTQSIPLLBUVTIXLD"  // trinary.Trytes("AAAA....")
 
-// must be 90 trytes long (with checksum)
-const recipientAddress = "ZYMPWKOQNA9GRSPZVEHCOOLERBTYVIJBKDRQHTSSUMCIRP9V9WCOJIUJORIWSFZVZGSIZYLGK9OFAUNCXNBWIPMOJC"
-
-func TransferTokens() {
+func TransferTokens(recipientAddress string) {
 
 	// get the best available PoW implementation
 	_, proofOfWorkFunc := pow.GetFastestProofOfWorkImpl()
@@ -36,25 +31,31 @@ func TransferTokens() {
 		{
 			// must be 90 trytes long (include the checksum)
 			Address: recipientAddress,
-			Value:   80,
+			Value:   DefaultAmount,
 		},
 	}
 
 	// create inputs for the transfer
+	walletAddress, err := address.GenerateAddress(DefaultWalletSeed, KeyIndex, SecurityLevelMedium, true)
+	must(err)
+
+	balances, err := api.GetBalances(trinary.Hashes{walletAddress}, 100)
+	must(err)
+	walletBalance := balances.Balances[0]
+
 	inputs := []Input{
 		{
-			// must be 90 trytes long (include the checksum)
-			Address:  "TGYAAS9JZOBAIQHUMJEBWR9XBKFGWGPULBOPJYRYITHJZCHXXW9NPEJ9UKLXNPXHZIOUYHXJERNZNWJUDIDDPUOVKD",
+			Address:  walletAddress,
 			Security: SecurityLevelMedium,
 			KeyIndex: 0,
-			Balance:  100,
+			Balance:  walletBalance,
 		},
 	}
 
 	// create an address for the remainder.
 	// in this case we will have 20 iotas as the remainder, since we spend 100 from our input
 	// address and only send 80 to the recipient.
-	remainderAddress, err := address.GenerateAddress(seed, 1, SecurityLevelMedium, true)
+	remainderAddress, err := address.GenerateAddress(DefaultWalletSeed, KeyIndex + 1, SecurityLevelMedium, true)
 	must(err)
 
 	// we don't need to set the security level or timestamp in the options because we supply
@@ -63,7 +64,7 @@ func TransferTokens() {
 
 	// prepare the transfer by creating a bundle with the given transfers and inputs.
 	// the result are trytes ready for PoW.
-	trytes, err := api.PrepareTransfers(seed, transfers, prepTransferOpts)
+	trytes, err := api.PrepareTransfers(DefaultWalletSeed, transfers, prepTransferOpts)
 	must(err)
 
 	// you can decrease your chance of sending to a spent address by checking the address before
@@ -87,6 +88,8 @@ func TransferTokens() {
 	must(err)
 
 	fmt.Println("broadcasted bundle with tail tx hash: ", bundle.TailTransactionHash(bndl))
+	fmt.Println("remainder address: ", remainderAddress)
+	fmt.Println("recipient address: ", recipientAddress)
 }
 
 func must(err error) {

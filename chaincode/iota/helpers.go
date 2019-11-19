@@ -7,6 +7,7 @@ import (
   "fmt"
   "encoding/json"
 
+  "github.com/iotaledger/iota.go/address"
   "github.com/iotaledger/iota.go/mam/v1"
   "github.com/iotaledger/iota.go/consts"
 	"github.com/iotaledger/iota.go/api"
@@ -98,4 +99,18 @@ func StringToMamState(mamstate string) *mam.Channel {
 		fmt.Println("error:", err)
 	}
 	return channel
+}
+
+func CreateWallet() (string, string) {
+  // must be 81 trytes long and truly random
+  seed := GenerateRandomSeedString(81)
+  
+  // must be 90 trytes long (include the checksum)
+  walletAddress, err := address.GenerateAddress(seed, 0, consts.SecurityLevelMedium, true)
+  
+  if err != nil {
+		fmt.Println("error:", err)
+  }
+  
+  return walletAddress, seed
 }

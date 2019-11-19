@@ -41,6 +41,17 @@ type Container struct {
 	Holder  string `json:"holder"`
 }
 
+type IotaWallet struct {
+	Seed        string `json:"seed"`
+	Address    string `json:"address"`
+}
+
+type Participant struct {
+	Role string `json:"role"`
+	Description string `json:"description"`
+	IotaWallet
+}
+
 type IotaPayload struct {
 	Seed        string `json:"seed"`
 	MamState    string `json:"mamState"`
@@ -93,16 +104,16 @@ Will add test data (10 containers) to our network
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Response {
 	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
 	containers := []Container{
-		Container{Description: "Apples", Location: "67.0006, -70.5476", Timestamp: timestamp, Holder: "Farmer"},
+		Container{Description: "Apples", Location: "67.0006, -70.5476", Timestamp: timestamp, Holder: "Producer"},
 		Container{Description: "Oranges", Location: "91.2395, -49.4594", Timestamp: timestamp, Holder: "Freight Forwarder"},
 		Container{Description: "Avocados", Location: "58.0148, 59.01391", Timestamp: timestamp, Holder: "Customs"},
-		Container{Description: "Pineapples", Location: "-45.0945, 0.7949", Timestamp: timestamp, Holder: "Farmer"},
+		Container{Description: "Pineapples", Location: "-45.0945, 0.7949", Timestamp: timestamp, Holder: "Producer"},
 		Container{Description: "Olives", Location: "-107.6043, 19.5003", Timestamp: timestamp, Holder: "Shipper"},
 		Container{Description: "Mangos", Location: "-155.2304, -15.8723", Timestamp: timestamp, Holder: "Distributor"},
 		Container{Description: "Grapefruits", Location: "103.8842, 22.1277", Timestamp: timestamp, Holder: "Customs"},
 		Container{Description: "Watermelons", Location: "-132.3207, -34.0983", Timestamp: timestamp, Holder: "Freight Forwarder"},
 		Container{Description: "Bananas", Location: "153.0054, 12.6429", Timestamp: timestamp, Holder: "Shipper"},
-		Container{Description: "Clementines", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Distributor"},
+		Container{Description: "Clementines", Location: "51.9435, 8.2735", Timestamp: timestamp, Holder: "Retailer"},
 	}
 
 	i := 0
@@ -123,6 +134,23 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		fmt.Println("New Asset", strconv.Itoa(i+1), containers[i], root, mode, sideKey)
 		
 		i = i + 1
+	}
+
+	participants := []Participant{
+		Participant{Role: "Producer", Description: "Farmer / Goods producer"},
+		Participant{Role: "Freight Forwarder", Description: "Logistics"},
+		Participant{Role: "Customs", Description: ""},
+		Participant{Role: "Shipper", Description: ""},
+		Participant{Role: "Distributor", Description: "Fruits distributor"},
+		Participant{Role: "Retailer", Description: "Large grocery store"},
+	}
+
+	for i := range participants {
+		walletAddress, walletSeed := iota.CreateWallet()
+		participants[i].Seed = walletSeed
+		participants[i].Address = walletAddress
+		participantAsBytes, _ := json.Marshal(participants[i])
+		APIstub.PutState(participants[i].Role, participantAsBytes)
 	}
 
 	return shim.Success(nil)
@@ -193,10 +221,18 @@ It takes one argument -- the key for the container in question
 	// IOTA MAM stream values
 	messages := iota.Fetch(iotaPayload.Root, iotaPayload.Mode, iotaPayload.SideKey)
 
+	participantAsBytes, _ := APIstub.GetState(container.Holder)
+	if participantAsBytes == nil {
+		return shim.Error("Could not locate participant")
+	}
+	participant := Participant{}
+	json.Unmarshal(participantAsBytes, &participant)
+
 	out := map[string]interface{}{}
 	out["container"] = container
 	out["mamstate"] = mamstate
 	out["messages"] = strings.Join(messages, ", ")
+	out["wallet"] = participant.Address
 	
 	result, _ := json.Marshal(out)
 
@@ -284,6 +320,7 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	json.Unmarshal(containerAsBytes, &container)
 	// Normally check that the specified argument is a valid holder of a container
 	// we are skipping this check for this example
+	previousContainerHolder := container.Holder
 	container.Holder = args[1]
 
 	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
@@ -306,6 +343,15 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root, Mode: iotaPayload.Mode, SideKey: iotaPayload.SideKey}
 	iotaPayloadNewAsBytes, _ := json.Marshal(iotaPayloadNew)
 	APIstub.PutState("IOTA_" + args[0], iotaPayloadNewAsBytes)
+
+	// make payment to the participant
+	participantAsBytes, _ := APIstub.GetState(previousContainerHolder)
+	if participantAsBytes == nil {
+		return shim.Error("Could not locate participant")
+	}
+	participant := Participant{}
+	json.Unmarshal(participantAsBytes, &participant)
+	iota.TransferTokens(participant.Address)
 
 	return shim.Success([]byte("changeContainerHolder success | " + iotaPayload.Root))
 }

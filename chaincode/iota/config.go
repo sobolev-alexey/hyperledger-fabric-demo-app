@@ -13,3 +13,8 @@ const transactionTag = "HYPERLEDGER"
 const MamMode = "public" // "restricted" "private"
 
 const MamSideKey = ""
+
+// IOTA Wallet
+const DefaultWalletSeed = "RTZKOKTX9WMASJMXG9SGSWNGSAE9TWHACCTQNVLVR9XSDPBMZGVODEUZU9USLLKZAIOZGLSA9UBOTG9LQ"
+const KeyIndex = 1
+const DefaultAmount = 100
