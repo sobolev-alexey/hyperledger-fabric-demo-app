@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	sc "github.com/hyperledger/fabric/protos/peer"
+	"github.com/iota"
 )
 
 // Define the Smart Contract structure
@@ -39,9 +41,24 @@ type Container struct {
 	Holder  string `json:"holder"`
 }
 
+type IotaWallet struct {
+	Seed        string `json:"seed"`
+	Address     string `json:"address"`
+	KeyIndex    uint64 `json:"keyIndex"`
+}
+
 type Participant struct {
 	Role string `json:"role"`
 	Description string `json:"description"`
+	IotaWallet
+}
+
+type IotaPayload struct {
+	Seed        string `json:"seed"`
+	MamState    string `json:"mamState"`
+	Root        string `json:"root"`
+	Mode       	string `json:"mode"`
+	SideKey     string `json:"sideKey"`
 }
 
 /*
@@ -105,7 +122,17 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		containerAsBytes, _ := json.Marshal(containers[i])
 		APIstub.PutState(strconv.Itoa(i+1), containerAsBytes)
 
-		fmt.Println("New Asset", strconv.Itoa(i+1), containers[i])
+		// Define own values for IOTA MAM message mode and MAM message encryption key
+		// If not set, default values from iota/config.go file will be used
+		mode := iota.MamMode
+		sideKey := iota.PadSideKey(iota.MamSideKey) // iota.PadSideKey(iota.GenerateRandomSeedString(50))
+		
+		mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)
+		iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
+		iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
+		APIstub.PutState("IOTA_" + strconv.Itoa(i+1), iotaPayloadAsBytes)
+
+		fmt.Println("New Asset", strconv.Itoa(i+1), containers[i], root, mode, sideKey)
 		
 		i = i + 1
 	}
@@ -120,9 +147,17 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 	}
 
 	for i := range participants {
+		walletAddress, walletSeed := iota.CreateWallet()
+		participants[i].Seed = walletSeed
+		participants[i].Address = walletAddress
+		participants[i].KeyIndex = 0
 		participantAsBytes, _ := json.Marshal(participants[i])
 		APIstub.PutState(participants[i].Role, participantAsBytes)
 	}
+
+	iotaWallet := IotaWallet{Seed: iota.DefaultWalletSeed, KeyIndex: iota.DefaultWalletKeyIndex, Address: ""}
+	iotaWalletAsBytes, _ := json.Marshal(iotaWallet)
+	APIstub.PutState("IOTA_WALLET", iotaWalletAsBytes)
 
 	return shim.Success(nil)
 }
@@ -146,7 +181,17 @@ func (s *SmartContract) recordContainer(APIstub shim.ChaincodeStubInterface, arg
 		return shim.Error(fmt.Sprintf("Failed to record container: %s", args[0]))
 	}
 
-	fmt.Println("New Asset", args[0], container)
+	// Define own values for IOTA MAM message mode and MAM message encryption key
+	// If not set, default values from iota/config.go file will be used
+	mode := iota.MamMode
+	sideKey := iota.PadSideKey(iota.MamSideKey) // iota.PadSideKey(iota.GenerateRandomSeedString(50))
+	
+	mamState, root, seed := iota.PublishAndReturnState(string(containerAsBytes), false, "", "", mode, sideKey)	
+	iotaPayload := IotaPayload{Seed: seed, MamState: mamState, Root: root, Mode: mode, SideKey: sideKey}
+	iotaPayloadAsBytes, _ := json.Marshal(iotaPayload)
+	APIstub.PutState("IOTA_" + args[0], iotaPayloadAsBytes)
+
+	fmt.Println("New Asset", args[0], container, root, mode, sideKey)
 
 	return shim.Success(nil)
 }
@@ -168,8 +213,32 @@ It takes one argument -- the key for the container in question
 	container := Container{}
 	json.Unmarshal(containerAsBytes, &container)
 
+	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
+	if iotaPayloadAsBytes == nil {
+		return shim.Error("Could not locate IOTA state object")
+	}
+	iotaPayload := IotaPayload{}
+	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
+
+	mamstate := map[string]interface{}{}
+	mamstate["root"] = iotaPayload.Root
+	mamstate["sideKey"] = iotaPayload.SideKey
+
+	// IOTA MAM stream values
+	messages := iota.Fetch(iotaPayload.Root, iotaPayload.Mode, iotaPayload.SideKey)
+
+	participantAsBytes, _ := APIstub.GetState(container.Holder)
+	if participantAsBytes == nil {
+		return shim.Error("Could not locate participant")
+	}
+	participant := Participant{}
+	json.Unmarshal(participantAsBytes, &participant)
+
 	out := map[string]interface{}{}
 	out["container"] = container
+	out["mamstate"] = mamstate
+	out["messages"] = strings.Join(messages, ", ")
+	out["wallet"] = participant.Address
 	
 	result, _ := json.Marshal(out)
 
@@ -244,6 +313,7 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	json.Unmarshal(containerAsBytes, &container)
 	// Normally check that the specified argument is a valid holder of a container
 	// we are skipping this check for this example
+	previousContainerHolder := container.Holder
 	container.Holder = args[1]
 
 	timestamp := strconv.FormatInt(time.Now().UnixNano() / 1000000, 10)
@@ -253,6 +323,41 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	err := APIstub.PutState(args[0], containerAsBytes)
 	if err != nil {
 		return shim.Error(fmt.Sprintf("Failed to change container holder: %s", args[0]))
+	}
+
+	iotaPayloadAsBytes, _ := APIstub.GetState("IOTA_" + args[0])
+	if iotaPayloadAsBytes == nil {
+		return shim.Error("Could not locate IOTA state object")
+	}
+	iotaPayload := IotaPayload{}
+	json.Unmarshal(iotaPayloadAsBytes, &iotaPayload)
+
+	mamState, _, _ := iota.PublishAndReturnState(string(containerAsBytes), true, iotaPayload.Seed, iotaPayload.MamState, iotaPayload.Mode, iotaPayload.SideKey)
+	iotaPayloadNew := IotaPayload{Seed: iotaPayload.Seed, MamState: mamState, Root: iotaPayload.Root, Mode: iotaPayload.Mode, SideKey: iotaPayload.SideKey}
+	iotaPayloadNewAsBytes, _ := json.Marshal(iotaPayloadNew)
+	APIstub.PutState("IOTA_" + args[0], iotaPayloadNewAsBytes)
+
+	// make payment to the participant
+	participantAsBytes, _ := APIstub.GetState(previousContainerHolder)
+	if participantAsBytes == nil {
+		return shim.Error("Could not locate participant")
+	}
+	participant := Participant{}
+	json.Unmarshal(participantAsBytes, &participant)
+
+	iotaWalletAsBytes, _ := APIstub.GetState("IOTA_WALLET")
+	if iotaWalletAsBytes == nil {
+		return shim.Error("Could not locate wallet data")
+	}
+	iotaWallet := IotaWallet{}
+	json.Unmarshal(iotaWalletAsBytes, &iotaWallet)
+
+	newKeyIndex := iota.TransferTokens(iotaWallet.Seed, iotaWallet.KeyIndex, participant.Address)
+	iotaWallet.KeyIndex = newKeyIndex
+	iotaWalletAsBytes, _ = json.Marshal(iotaWallet)
+	err = APIstub.PutState("IOTA_WALLET", iotaWalletAsBytes)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("Failed to update wallet with index: %s", strconv.FormatUint(newKeyIndex, 10)))
 	}
 
 	return shim.Success([]byte("changeContainerHolder success"))
