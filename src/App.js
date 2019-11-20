@@ -104,7 +104,6 @@ class App extends Component {
             this.setState({ 
               allContainers: [{ Key: containerId, Record: JSON.parse(data.result).container }]
             });
-            console.log(JSON.parse(data.result).messages)
           } else {
             console.error(data.error);
           }
