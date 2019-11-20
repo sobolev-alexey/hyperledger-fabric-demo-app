@@ -15,10 +15,10 @@
     "express": "^4.17.1",
     "fabric-ca-client": "^1.4.4",
     "fabric-client": "^1.4.4",
-    "react": "^16.11.0",
-    "react-dom": "^16.11.0",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
     "react-scripts": "3.2.0",
-    "react-toastify": "^5.4.0"
+    "react-toastify": "^5.4.1"
   },
   "devDependencies": {
     "node-env-run": "^3.0.2",
