@@ -16,5 +16,5 @@ const MamSideKey = ""
 
 // IOTA Wallet
 const DefaultWalletSeed = "RTZKOKTX9WMASJMXG9SGSWNGSAE9TWHACCTQNVLVR9XSDPBMZGVODEUZU9USLLKZAIOZGLSA9UBOTG9LQ"
-const DefaultWalletKeyIndex = 3
+const DefaultWalletKeyIndex = 4
 const DefaultAmount = 100
