@@ -101,9 +101,16 @@ class App extends Component {
         .then(response => response.json())
         .then(data => {
           if (data.success && data.result) {
+            const result = JSON.parse(data.result)
+
             this.setState({ 
-              allContainers: [{ Key: containerId, Record: JSON.parse(data.result).container }]
+              allContainers: [{ Key: containerId, Record: result.container }]
             });
+            console.log("Wallet Address", result.wallet)
+            console.log("MAM Root", result.mamstate.root)
+            console.log("MAM payload: ")
+            console.log(result.messages)
+            console.log("======================")
           } else {
             console.error(data.error);
           }
