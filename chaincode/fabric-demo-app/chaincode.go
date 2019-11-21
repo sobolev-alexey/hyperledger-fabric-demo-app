@@ -43,7 +43,8 @@ type Container struct {
 
 type IotaWallet struct {
 	Seed        string `json:"seed"`
-	Address    string `json:"address"`
+	Address     string `json:"address"`
+	KeyIndex    uint64 `json:"keyIndex"`
 }
 
 type Participant struct {
@@ -149,9 +150,14 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface) sc.Respo
 		walletAddress, walletSeed := iota.CreateWallet()
 		participants[i].Seed = walletSeed
 		participants[i].Address = walletAddress
+		participants[i].KeyIndex = 0
 		participantAsBytes, _ := json.Marshal(participants[i])
 		APIstub.PutState(participants[i].Role, participantAsBytes)
 	}
+
+	iotaWallet := IotaWallet{Seed: iota.DefaultWalletSeed, KeyIndex: iota.DefaultWalletKeyIndex, Address: ""}
+	iotaWalletAsBytes, _ := json.Marshal(iotaWallet)
+	APIstub.PutState("IOTA_WALLET", iotaWalletAsBytes)
 
 	return shim.Success(nil)
 }
@@ -351,9 +357,23 @@ func (s *SmartContract) changeContainerHolder(APIstub shim.ChaincodeStubInterfac
 	}
 	participant := Participant{}
 	json.Unmarshal(participantAsBytes, &participant)
-	iota.TransferTokens(participant.Address)
 
-	return shim.Success([]byte("changeContainerHolder success | " + iotaPayload.Root))
+	iotaWalletAsBytes, _ := APIstub.GetState("IOTA_WALLET")
+	if iotaWalletAsBytes == nil {
+		return shim.Error("Could not locate wallet data")
+	}
+	iotaWallet := IotaWallet{}
+	json.Unmarshal(iotaWalletAsBytes, &iotaWallet)
+
+	newKeyIndex := iota.TransferTokens(iotaWallet.Seed, iotaWallet.KeyIndex, participant.Address)
+	iotaWallet.KeyIndex = newKeyIndex
+	iotaWalletAsBytes, _ = json.Marshal(iotaWallet)
+	err = APIstub.PutState("IOTA_WALLET", iotaWalletAsBytes)
+	if err != nil {
+		return shim.Error(fmt.Sprintf("Failed to update wallet with index: %s", strconv.FormatUint(newKeyIndex, 10)))
+	}
+
+	return shim.Success([]byte("changeContainerHolder success"))
 }
 
 /*
